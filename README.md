@@ -9,7 +9,7 @@ It accompanies the paper:
 If you use this code, please cite the paper:
 
 "Elastic and Spin-Changing Cross Sections of Spin-Polarized Atomic Tritium"
-M.G. Elliot and B.J.P. Jones
+M.G. Elliott and B.J.P. Jones
 
 ## Structure
 
