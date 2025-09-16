@@ -31,7 +31,7 @@ DipoleChannels.append({'alpha':'d','beta':'d','alphaprime':'c','betaprime':'d'})
 
 # The mean momentum for a molecule at temperature T.
 def p_of_temp(mu, T):
-    return np.sqrt(2 * mu * constants.kb * constants.J2eV * T)
+    return np.sqrt((4/np.pi)* mu * constants.kb * constants.J2eV * T)
 
 # If a collision occurs at temp T, additional energy is releasted from the hyperfine states.
 # This gives the final state momentum.
@@ -152,7 +152,11 @@ def CalculateDegeneracy(l1,l2,dm):
             degen+=1
     return degen
 
-#Turn a G-factor into a cross section
-def GetCrossSection(G,m,T):
-    A=1e-6 / (constants.BohrInAng*1e-10)**2 * np.sqrt(np.pi*m*constants.amu/(16*constants.kb))
-    return A*G/np.sqrt(T)
+
+def E_com(T):
+    return T*2/np.pi
+
+def GetCrossSection(G,m,E_com):
+    A=1e-6 / (constants.BohrInAng*1e-10)**2 * np.sqrt((m*constants.amu/2)/(2*E_com*constants.kb))
+    return 2.*A*G
+
