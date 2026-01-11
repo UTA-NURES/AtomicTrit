@@ -3,7 +3,10 @@
 This package can be used to evaluate the cross sections for elastic and inelastic scattering of cold atomic 
 hydrogen and tritium.  
 
+
 It accompanies the paper: 
+
+# This is the helium-hydrogen scattering branch
 
 ## Reference
 If you use this code, please cite the paper:
