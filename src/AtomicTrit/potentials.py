@@ -209,7 +209,7 @@ def Kolos_Singlet1_VDW_H(R):
 # Jamieson and Wolniewicz both have the H correction, so we scale -2/3 for T and not for H
 def Jamieson_Triplet_HFD_T(R):
     return ApplyCorrection(R,Jamieson_Triplet_HFD,TripletCorrection,-2/3)
-    
+
 def Jamieson_Singlet_VDW_T(R):
     return ApplyCorrection(R,Jamieson_Singlet_VDW,SingletCorrection,-2/3)
 def Wolniewicz_Singlet_VDW_T(R):
@@ -270,3 +270,40 @@ SingletsH = {#"Kolos 65":Kolos_Singlet1_HFD_H,
             "Kolos 74":Kolos_Singlet2_VDW_H,
             "Wolniewicz":Wolniewicz_Singlet_VDW_H,
             "Jamieson":Jamieson_Singlet_VDW_H}
+
+
+#============================================
+# Jochemsen Potentials (R2) in analytic form
+#============================================
+# Canadian Journal of Physics, 62(8), 751–759
+
+def R2(Rho):
+  # Atomic units are used in the potential
+    R = np.asarray(Rho) * hcInEVAngstrom / BohrInAng
+    V = np.zeros_like(Rho)
+
+    A       = 2.5725              # Hartree
+    R0      = 6.0471              # Bohr
+    Alpha   = 1.7902              # Bohr ^-1
+    A0      = A*np.exp(-R0*alpha) # Hartree
+    Epsilon = 2.20496e-5          # Hartree
+    R1      = 8.21763             # Bohr
+    C6      = 2.8187              # Hartree / Bohr^3
+    C8      = 41.7257             # Hartree / Bohr^8
+    C10     = 865.7844            # Hartree / Bohr^10
+
+    # Masks
+    mask1 = R <= R0
+    mask2 = (R > R0) & (R <= R1)
+    mask3 = R > R1
+
+    # Region 1: exponential repulsion
+    V[mask1] = A*np.exp(-Alpha*R[mask1]) - A0
+
+    # Region 2: Lennard-Jones-like mid region
+    V[mask2] = 4*Epsilon*((R0/R[mask2])**12 - (R0/R[mask2])**6)
+
+    # Region 3: long-range attractive tail
+    V[mask3] = -(C6/R[mask3]**6 + C8/R[mask3]**8 + C10/R[mask3]**10)
+
+    return V * HartreeInEV
