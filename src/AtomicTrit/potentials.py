@@ -313,29 +313,29 @@ def R2(Rho):
 #============================================
 # Canadian Journal of Physics, 62(8), 751–759
 
-def HFD_B(_r):
-    _r = _r/ BohrInEV
-    def V_SCF(_r):
+def HFD_B(R):
+    R = R/ BohrInEV
+    def V_SCF(R):
         alpha = 2.1829 # Bohr ^ -1
         beta  = 1.9
         A     = 1.2712 # Hartree / Bohr ^ beta
-        return A*_r**beta * np.exp(-alpha * _r)
+        return A*R**beta * np.exp(-alpha * R)
 
-    def g(_r, _n):
+    def g(R, _n):
         rho = 1.1696 # Bohr ^ -1
-        return np.power(1 - np.exp(-2.1 * rho *_r/_n - 0.109 * rho**2 *_r**2/np.sqrt(_n)), _n)
+        return np.power(1 - np.exp(-2.1 * rho *R/_n - 0.109 * rho**2 *R**2/np.sqrt(_n)), _n)
 
-    def f(_r):
+    def f(R):
         rho = 1.1696 # Bohr ^ -1
-        return 1 - np.power(rho * _r, 1.68  ) * np.exp(-0.78 * rho * _r)
+        return 1 - np.power(rho * R, 1.68  ) * np.exp(-0.78 * rho * R)
 
-    def V_CORR(_r):
+    def V_CORR(R):
         C6   = 0.061922613 * 45.536241158
         C8   = 0.25702478  * 162.608373042
         C10  = 1.4894502   * 580.668986083
         C12  = 12.388198   * 2073.549258817
         C14  = 144.0574    * 7404.574089179
-        summ = C6/(_r**6)* g(_r, 6) + C8/(_r**8)* g(_r, 8) + C10/(_r**10)* g(_r, 10) + C12/(_r**12)* g(_r, 12) +C14/(_r**14)* g(_r, 14)
-        return -f(_r) * summ
+        summ = C6/(R**6)* g(R, 6) + C8/(R**8)* g(R, 8) + C10/(R**10)* g(R, 10) + C12/(R**12)* g(R, 12) +C14/(R**14)* g(R, 14)
+        return -f(R) * summ
 
-    return (V_SCF(_r) + V_CORR(_r)) * HartreeInEV
+    return (V_SCF(R) + V_CORR(R)) * HartreeInEV
