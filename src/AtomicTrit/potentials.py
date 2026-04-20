@@ -278,14 +278,14 @@ SingletsH = {#"Kolos 65":Kolos_Singlet1_HFD_H,
 # Canadian Journal of Physics, 62(8), 751–759
 
 def R2(Rho):
-  # Atomic units are used in the potential
-    R = np.asarray(Rho) * hcInEVAngstrom / BohrInAng
+    # Atomic units are used in the potential
+    R = np.asarray(Rho) / BohrInEV
     V = np.zeros_like(Rho)
 
     A       = 2.5725              # Hartree
     R0      = 6.0471              # Bohr
     Alpha   = 1.7902              # Bohr ^-1
-    A0      = A*np.exp(-R0*alpha) # Hartree
+    A0      = A*np.exp(-R0*Alpha) # Hartree
     Epsilon = 2.20496e-5          # Hartree
     R1      = 8.21763             # Bohr
     C6      = 2.8187              # Hartree / Bohr^3
@@ -307,3 +307,35 @@ def R2(Rho):
     V[mask3] = -(C6/R[mask3]**6 + C8/R[mask3]**8 + C10/R[mask3]**10)
 
     return V * HartreeInEV
+
+#============================================
+# Scoles Potentials (HFD-B) in analytic form
+#============================================
+# Canadian Journal of Physics, 62(8), 751–759
+
+def HFD_B(_r):
+    _r = _r/ BohrInEV
+    def V_SCF(_r):
+        alpha = 2.1829 # Bohr ^ -1
+        beta  = 1.9
+        A     = 1.2712 # Hartree / Bohr ^ beta
+        return A*_r**beta * np.exp(-alpha * _r)
+
+    def g(_r, _n):
+        rho = 1.1696 # Bohr ^ -1
+        return np.power(1 - np.exp(-2.1 * rho *_r/_n - 0.109 * rho**2 *_r**2/np.sqrt(_n)), _n)
+
+    def f(_r):
+        rho = 1.1696 # Bohr ^ -1
+        return 1 - np.power(rho * _r, 1.68  ) * np.exp(-0.78 * rho * _r)
+
+    def V_CORR(_r):
+        C6   = 0.061922613 * 45.536241158
+        C8   = 0.25702478  * 162.608373042
+        C10  = 1.4894502   * 580.668986083
+        C12  = 12.388198   * 2073.549258817
+        C14  = 144.0574    * 7404.574089179
+        summ = C6/(_r**6)* g(_r, 6) + C8/(_r**8)* g(_r, 8) + C10/(_r**10)* g(_r, 10) + C12/(_r**12)* g(_r, 12) +C14/(_r**14)* g(_r, 14)
+        return -f(_r) * summ
+
+    return (V_SCF(_r) + V_CORR(_r)) * HartreeInEV
