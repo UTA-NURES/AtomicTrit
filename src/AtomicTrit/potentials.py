@@ -272,13 +272,14 @@ SingletsH = {#"Kolos 65":Kolos_Singlet1_HFD_H,
             "Jamieson":Jamieson_Singlet_VDW_H}
 
 
-#============================================
-# Jochemsen Potentials (R2) in analytic form
-#============================================
+#==============================================
+# Jochemsen Potentials (R2) in an analytic form
+#==============================================
 # Canadian Journal of Physics, 62(8), 751–759
 
 def R2(Rho):
-    # Atomic units are used in the potential
+    # R2 presented in atomic units.
+    # Variables Rho convert to Bohr, while energy to eV.
     R = np.asarray(Rho) / BohrInEV
     V = np.zeros_like(Rho)
 
@@ -308,12 +309,14 @@ def R2(Rho):
 
     return V * HartreeInEV
 
-#============================================
-# Scoles Potentials (HFD-B) in analytic form
-#============================================
+#==============================================
+# Scoles Potentials (HFD-B) in an analytic form
+#==============================================
 # Canadian Journal of Physics, 62(8), 751–759
 
 def HFD_B(R):
+    # HFD-B presented in atomic units.
+    # Variables Rho convert to Bohr, while energy to eV.
     R = R/ BohrInEV
     def V_SCF(R):
         alpha = 2.1829 # Bohr ^ -1
