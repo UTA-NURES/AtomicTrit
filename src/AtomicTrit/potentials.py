@@ -342,3 +342,34 @@ def HFD_B(R):
         return -f(R) * summ
 
     return (V_SCF(R) + V_CORR(R)) * HartreeInEV
+
+
+#==============================================                                                                                                                            
+# Meyer Frommhold potentials
+#==============================================
+#
+# W. Meyer and L. Frommhold, Theoretica chimica acta 88, 201 (1994)
+# H. Chung and A. Dalgarno, Phys. Rev. A 66, 012712 (2002)
+#
+
+datLongMF   = pd.read_csv(path+"/InputData/HeH_MeyerFromhold.csv")
+datShortMF  = pd.read_csv(path+"/InputData/HeH_ShortCorrection.csv")
+
+interpMF    = interp1d(datLongMF.R*bohr,datLongMF.Total*HartreeInEV*1e-6, kind='cubic', bounds_error=False,fill_value='extrapolate')
+interpShort = interp1d(datShortMF.R*bohr,datShortMF.Modified*HartreeInEV*1e-6, kind='cubic', bounds_error=False,fill_value='extrapolate')
+
+def ExtendedMF(R):
+    return VanDerWaalsExtension(R,interpMF,15*bohr)
+
+def ModifiedMF(R):
+    return CompositePotential(R, [interpShort, ExtendedMF], [0, 6.0 * bohr, 1e6])
+
+
+#==============================================                                                                                                                            
+# Compilation of H-He potentials                                                                                                   
+#==============================================
+
+HeHPotentials = {"MeyerFrommhold": ExtendedMF,
+                 "ModifiedMF"    : ModifiedMF,
+                 "HFD_B"         : HFD_B,
+                 "R2"            : R2}
