@@ -373,3 +373,161 @@ HeHPotentials = {"MeyerFrommhold": ExtendedMF,
                  "ModifiedMF"    : ModifiedMF,
                  "HFD_B"         : HFD_B,
                  "R2"            : R2}
+
+
+
+
+#==============================================
+# Makrides Li-He potentials
+#==============================================
+#
+# C. Makrides et al., Phys. Rev. A 101, 012702 (2020)
+# U. Kleinekathöfer, M. Lewerenz, and M. Mladenovic, Phys. Rev. Lett. 83, 4717 (1999)
+# V. Staemmler, Z. Phys. D 39, 121 (1997)
+# E. Czuchaj, F. Rebentrost, H. Stoll, and H. Preuss, Chem. Phys. 196, 37 (1995)
+# J. Jiang, Y. Mitroy, J. Cheng, and M. Bromley, ADNDT 101, 158 (2015)
+#
+
+# Li-He functions take Rho in eV^-1 and return energy in eV.
+# The CC data are in cm^-1; the Czuchaj and Staemmler data are in Hartree.
+
+# Makrides Table I: R/a0, CC-TZ, CC-QZ, CC-5Z, and CC-Infinity.
+datMakrides = np.genfromtxt(
+    path + "/InputData/LiHe_Makrides.csv", delimiter=","
+)
+
+# Czuchaj SCF data for the short-range part of the CSD potential.
+datCzuchaj = np.genfromtxt(
+    path + "/InputData/LiHe_Czuchaj.csv", delimiter=","
+)
+
+# Staemmler CEPA data for the intermediate-range part of CSD.
+datStaemmler = np.genfromtxt(
+    path + "/InputData/LiHe.csv", delimiter=","
+)
+
+LiHeC6 = 22.535
+LiHeC8 = 1084.2
+LiHeC10 = 72665.0
+
+def LiHeDispersion(Rho):
+    R = np.asarray(Rho) / BohrInEV
+    return -(LiHeC6 / R**6 + LiHeC8 / R**8 + LiHeC10 / R**10) * HartreeInEV
+
+
+# Add dispersion points for a smooth connection to the common long-range tail.
+LiHeRLong = np.array([20.0, 21.0, 22.0, 24.0])
+LiHeVLong = LiHeDispersion(LiHeRLong * BohrInEV)
+LiHeRCC = np.concatenate([datMakrides[:, 0], LiHeRLong]) * BohrInEV
+LiHeVCC = np.vstack([
+    datMakrides[:, 1:] * cmm1_in_eV,
+    np.column_stack([LiHeVLong] * 4),
+])
+
+LiHeCCInterps = [
+    Akima1DInterpolator(LiHeRCC, LiHeVCC[:, i], extrapolate=True)
+    for i in range(4)
+]
+
+def LiHeCC(Rho, index):
+    Rho = np.asarray(Rho)
+    split = 20.0 * BohrInEV
+    return np.where(
+        Rho <= split,
+        LiHeCCInterps[index](Rho),
+        LiHeDispersion(Rho),
+    )
+
+def Makrides_TZ(Rho):
+    return LiHeCC(Rho, 0)
+
+def Makrides_QZ(Rho):
+    return LiHeCC(Rho, 1)
+
+def Makrides_5Z(Rho):
+    return LiHeCC(Rho, 2)
+
+def Makrides_Infinity(Rho):
+    return LiHeCC(Rho, 3)
+
+
+# CSD combines Czuchaj SCF data for 3-8 a0, Staemmler CEPA data for 8-20 a0,
+# and the same analytical dispersion tail used by Makrides.
+LiHeRCSD = np.concatenate([
+    datCzuchaj[:, 0],
+    datStaemmler[datStaemmler[:, 0] < 20.0, 0],
+    LiHeRLong,
+]) * BohrInEV
+
+LiHeVCSD = np.concatenate([
+    datCzuchaj[:, 1] * HartreeInEV,
+    datStaemmler[datStaemmler[:, 0] < 20.0, 1] * HartreeInEV,
+    LiHeVLong,
+])
+
+LiHeCSDInterp = interp1d(
+    LiHeRCSD,
+    LiHeVCSD,
+    kind="cubic",
+    bounds_error=False,
+    fill_value="extrapolate",
+)
+
+def CSD(Rho):
+    Rho = np.asarray(Rho)
+    split = 20.0 * BohrInEV
+    return np.where(
+        Rho <= split,
+        LiHeCSDInterp(Rho),
+        LiHeDispersion(Rho),
+    )
+
+
+# Kleinekathöfer-Tang-Toennies-Yiu analytical potential.
+# [A,b1,b2,C6,C8,C10,C12,C14,C16], all in atomic units.
+KTTYCoefficients = np.zeros(9)
+KTTYCoefficients[:6] = [
+    2.430857, 1.04911, 0.00381298, 22.507, 1083.2, 72602.1
+]
+
+for i in range(6,9):
+    KTTYCoefficients[i] = (
+        (KTTYCoefficients[i-1]/KTTYCoefficients[i-2])**3
+        * KTTYCoefficients[i-3]
+    )
+
+def TangToenniesDamping(order, x):
+    damping_sum = np.zeros_like(x)
+    term = np.ones_like(x)
+
+    for k in range(order + 1):
+        if k > 0:
+            term = term * x / k
+        damping_sum = damping_sum + term
+
+    return 1.0 - np.exp(-x) * damping_sum
+
+def KTTY(Rho):
+    R = np.asarray(Rho) / BohrInEV
+    repulsive = KTTYCoefficients[0]*np.exp(
+        -KTTYCoefficients[1]*R-KTTYCoefficients[2]*R**2
+    )
+
+    x = (KTTYCoefficients[1] + 2 * KTTYCoefficients[2] * R) * R
+    attractive = np.zeros_like(R)
+
+    for i, order in enumerate([6, 8, 10, 12, 14, 16]):
+        attractive = attractive + TangToenniesDamping(order, x) * (
+            KTTYCoefficients[i + 3] / R**order
+        )
+
+    return (repulsive - attractive) * HartreeInEV
+
+
+LiHePotentials = {"CC-TZ"       : Makrides_TZ,
+                  "CC-QZ"       : Makrides_QZ,
+                  "CC-5Z"       : Makrides_5Z,
+                  "CC-Infinity" : Makrides_Infinity,
+                  "CSD"         : CSD,
+                  "KTTY"        : KTTY}
+
